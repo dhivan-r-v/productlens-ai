@@ -4,6 +4,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // Elements
   const imageInput = document.getElementById('imageInput');
   const csvInput = document.getElementById('csvInput');
+  const imageDropzone = document.getElementById('imageDropzone');
+  const csvDropzone = document.getElementById('csvDropzone');
   const imagePlaceholder = document.getElementById('imagePlaceholder');
   const imagePreviewContainer = document.getElementById('imagePreviewContainer');
   const imagePreview = document.getElementById('imagePreview');
@@ -43,31 +45,46 @@ document.addEventListener('DOMContentLoaded', () => {
   let csvFile = null;
   let isUsingSample = false;
 
+  const REQUIRED_CSV_HEADERS = ['date', 'product', 'price', 'units_sold', 'revenue'];
+
   // Banner helper
   function showAlert(msg, isError = true) {
-    alertBanner.textContent = msg;
+    alertBanner.innerHTML = `
+      <span>${escapeHtml(msg)}</span>
+      <button type="button" class="btn-remove" id="closeAlertBtn" title="Dismiss" style="margin-left: 1rem;">&times;</button>
+    `;
     alertBanner.className = isError ? 'alert-banner error' : 'alert-banner';
     alertBanner.classList.remove('hidden');
+
+    const closeBtn = document.getElementById('closeAlertBtn');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', hideAlert);
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function hideAlert() {
     alertBanner.classList.add('hidden');
-    alertBanner.textContent = '';
+    alertBanner.innerHTML = '';
   }
 
   function updateAnalyzeButtonState() {
-    const isReady = (imageFile && csvFile) || isUsingSample;
+    const isReady = (imageFile !== null && csvFile !== null) || isUsingSample;
     analyzeBtn.disabled = !isReady;
   }
 
-  // Image Selection
-  imageInput.addEventListener('change', (e) => {
-    const file = e.target.files[0];
+  // Handle Image File
+  function handleImageFile(file) {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      showAlert('Please select a valid image file (PNG, JPG, or WEBP).');
+      imageFile = null;
+      imageInput.value = '';
+      imagePreview.src = '';
+      imagePreviewContainer.classList.add('hidden');
+      imagePlaceholder.classList.remove('hidden');
+      updateAnalyzeButtonState();
+      showAlert('Invalid file type: Please select an image file (PNG, JPG, or WEBP).');
       return;
     }
 
@@ -81,8 +98,117 @@ document.addEventListener('DOMContentLoaded', () => {
     imagePreviewContainer.classList.remove('hidden');
 
     updateAnalyzeButtonState();
+  }
+
+  // Handle CSV File with client-side header validation
+  async function handleCsvFile(file) {
+    if (!file) return;
+
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+      csvFile = null;
+      csvInput.value = '';
+      csvInfoContainer.classList.add('hidden');
+      csvPlaceholder.classList.remove('hidden');
+      updateAnalyzeButtonState();
+      showAlert('Invalid file format: Please select a comma-separated .csv file.');
+      return;
+    }
+
+    try {
+      const text = await file.text();
+      const firstLine = text.split(/\r?\n/)[0] || '';
+      const headers = firstLine.split(',').map(h => h.trim().toLowerCase().replace(/\s+/g, '_'));
+
+      const missing = REQUIRED_CSV_HEADERS.filter(req => !headers.includes(req));
+      if (missing.length > 0) {
+        csvFile = null;
+        csvInput.value = '';
+        csvInfoContainer.classList.add('hidden');
+        csvPlaceholder.classList.remove('hidden');
+        updateAnalyzeButtonState();
+        showAlert(`Invalid CSV schema: Missing required columns: ${missing.join(', ')}. Required columns are: ${REQUIRED_CSV_HEADERS.join(', ')}.`);
+        return;
+      }
+
+      // Valid CSV
+      csvFile = file;
+      isUsingSample = false;
+      hideAlert();
+
+      csvFileName.textContent = file.name;
+      csvFileStatus.textContent = `${(file.size / 1024).toFixed(1)} KB • All required columns validated`;
+      csvPlaceholder.classList.add('hidden');
+      csvInfoContainer.classList.remove('hidden');
+
+      updateAnalyzeButtonState();
+    } catch (err) {
+      csvFile = null;
+      csvInput.value = '';
+      csvInfoContainer.classList.add('hidden');
+      csvPlaceholder.classList.remove('hidden');
+      updateAnalyzeButtonState();
+      showAlert('Failed to read CSV file: ' + err.message);
+    }
+  }
+
+  // File Inputs
+  imageInput.addEventListener('change', (e) => {
+    handleImageFile(e.target.files[0]);
   });
 
+  csvInput.addEventListener('change', (e) => {
+    handleCsvFile(e.target.files[0]);
+  });
+
+  // Drag and Drop: Image Dropzone
+  ['dragenter', 'dragover'].forEach(eventName => {
+    imageDropzone.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      imageDropzone.classList.add('drag-over');
+    });
+  });
+
+  ['dragleave', 'drop'].forEach(eventName => {
+    imageDropzone.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      imageDropzone.classList.remove('drag-over');
+    });
+  });
+
+  imageDropzone.addEventListener('drop', (e) => {
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      handleImageFile(files[0]);
+    }
+  });
+
+  // Drag and Drop: CSV Dropzone
+  ['dragenter', 'dragover'].forEach(eventName => {
+    csvDropzone.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      csvDropzone.classList.add('drag-over');
+    });
+  });
+
+  ['dragleave', 'drop'].forEach(eventName => {
+    csvDropzone.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      csvDropzone.classList.remove('drag-over');
+    });
+  });
+
+  csvDropzone.addEventListener('drop', (e) => {
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      handleCsvFile(files[0]);
+    }
+  });
+
+  // Remove File Handlers
   removeImageBtn.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -92,28 +218,6 @@ document.addEventListener('DOMContentLoaded', () => {
     imagePreview.src = '';
     imagePreviewContainer.classList.add('hidden');
     imagePlaceholder.classList.remove('hidden');
-    updateAnalyzeButtonState();
-  });
-
-  // CSV Selection
-  csvInput.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    if (!file.name.toLowerCase().endsWith('.csv')) {
-      showAlert('Please upload a comma-separated .csv file.');
-      return;
-    }
-
-    csvFile = file;
-    isUsingSample = false;
-    hideAlert();
-
-    csvFileName.textContent = file.name;
-    csvFileStatus.textContent = `${(file.size / 1024).toFixed(1)} KB • Ready for analysis`;
-    csvPlaceholder.classList.add('hidden');
-    csvInfoContainer.classList.remove('hidden');
-
     updateAnalyzeButtonState();
   });
 
@@ -137,12 +241,10 @@ document.addEventListener('DOMContentLoaded', () => {
     imageInput.value = '';
     csvInput.value = '';
 
-    // Set sample image preview
     imagePreview.src = '/static/sample_data/sample_product.jpg';
     imagePlaceholder.classList.add('hidden');
     imagePreviewContainer.classList.remove('hidden');
 
-    // Set sample CSV info
     csvFileName.textContent = 'sample_sales.csv';
     csvFileStatus.textContent = 'Pre-bundled demo data (8 weekly records)';
     csvPlaceholder.classList.add('hidden');
@@ -156,7 +258,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (analyzeBtn.disabled) return;
     hideAlert();
 
-    // Prepare FormData
     const formData = new FormData();
     if (isUsingSample) {
       formData.append('use_sample', 'true');
@@ -170,7 +271,6 @@ document.addEventListener('DOMContentLoaded', () => {
       formData.append('use_sample', 'false');
     }
 
-    // Show loading
     loadingCard.classList.remove('hidden');
     resultsSection.classList.add('hidden');
     analyzeBtn.disabled = true;
@@ -198,7 +298,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Render Analysis Results
   function renderResults(data) {
-    // Top anchor metadata
     resultsProductTitle.textContent = `Product: ${data.product_name}`;
     anchorProductText.textContent = data.product_name;
     anchorImagePreview.src = isUsingSample ? '/static/sample_data/sample_product.jpg' : imagePreview.src;
@@ -247,7 +346,7 @@ document.addEventListener('DOMContentLoaded', () => {
         hypothesesList.appendChild(item);
       });
     } else {
-      hypothesesList.innerHTML = '<p class="card-explainer">Cross-modal reasoning will be fully evaluated by Gemini in Slice 2.</p>';
+      hypothesesList.innerHTML = '<p class="card-explainer">No hypotheses available.</p>';
     }
 
     // Card 4: Recommended Experiments
@@ -272,7 +371,7 @@ document.addEventListener('DOMContentLoaded', () => {
         experimentsList.appendChild(item);
       });
     } else {
-      experimentsList.innerHTML = '<p class="card-explainer">Recommended experiments will be generated by Gemini in Slice 2.</p>';
+      experimentsList.innerHTML = '<p class="card-explainer">No experiments available.</p>';
     }
 
     // Show Results

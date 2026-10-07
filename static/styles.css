@@ -184,9 +184,10 @@ body {
   justify-content: center;
 }
 
-.dropzone-card:hover {
+.dropzone-card:hover,
+.dropzone-card.drag-over {
   border-color: var(--primary-600);
-  background: #F1F5F9;
+  background: #EFF6FF;
 }
 
 .dropzone-label {

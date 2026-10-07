@@ -29,7 +29,7 @@ Build mode: learn
   Learner check: Open the app, click "Load Sample Data", click "Analyze Product", and confirm that all four cards populate with grounded observations and testable hypotheses.
   Commit: `Add multimodal Gemini reasoning for visual observations and hypotheses`
 
-- [ ] **3. Input validation, error boundaries, and session reset**
+- [x] **3. Input validation, error boundaries, and session reset**
   Becomes usable: The application handles invalid inputs gracefully (e.g. CSV missing required columns or invalid images trigger clear inline error banners), enforces disabled button states when inputs are missing, and provides a working "Analyze Another Product" button that resets all state.
   Why now: Closes the entire user journey and hardens edge cases so the application is completely robust and ready for recording the demo video.
   PRD ref: `prd.md > The Core Journey` (step 5), `prd.md > Features and Behavior > 3. State Reset & Session Management`, `prd.md > States and Boundaries`
