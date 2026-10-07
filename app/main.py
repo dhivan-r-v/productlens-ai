@@ -2,12 +2,12 @@ import os
 from pathlib import Path
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, status
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse
 from PIL import Image
 import io
 
-from app.schemas import AnalysisResponse, MultimodalAnalysisPayload
-from app.analyzer import process_sales_csv
+from app.schemas import AnalysisResponse
+from app.analyzer import process_sales_csv, run_multimodal_analysis
 
 app = FastAPI(title="ProductLens AI", description="Multimodal Product & Sales Auditor")
 
@@ -16,7 +16,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 STATIC_DIR = BASE_DIR / "static"
 SAMPLE_DIR = STATIC_DIR / "sample_data"
 
-# Mount static directory for assets (CSS, JS, sample files)
+# Mount static directory for assets
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 @app.get("/")
@@ -34,10 +34,11 @@ async def analyze_product(
 ):
     """
     Analyzes product image and sales CSV.
-    Computes deterministic sales metrics via Pandas and generates multimodal insights.
+    Computes deterministic sales metrics via Pandas and generates multimodal insights via Gemini.
     """
     image_bytes = None
     csv_bytes = None
+    mime_type = "image/jpeg"
 
     if use_sample:
         sample_img_path = SAMPLE_DIR / "sample_product.jpg"
@@ -46,6 +47,7 @@ async def analyze_product(
             raise HTTPException(status_code=500, detail="Bundled sample data files are missing.")
         image_bytes = sample_img_path.read_bytes()
         csv_bytes = sample_csv_path.read_bytes()
+        mime_type = "image/jpeg"
     else:
         if not image or not csv_file:
             raise HTTPException(
@@ -54,18 +56,21 @@ async def analyze_product(
             )
         image_bytes = await image.read()
         csv_bytes = await csv_file.read()
+        mime_type = image.content_type or "image/jpeg"
 
     # Validate image integrity
     try:
         pil_img = Image.open(io.BytesIO(image_bytes))
         pil_img.verify()
+        if pil_img.format:
+            mime_type = f"image/{pil_img.format.lower()}"
     except Exception:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Invalid image file. Please upload a readable JPG or PNG image."
         )
 
-    # Process CSV deterministically via Pandas
+    # 1. Deterministic Sales Analysis with Pandas
     try:
         product_name, sales_trends, df = process_sales_csv(csv_bytes)
     except ValueError as ve:
@@ -79,18 +84,34 @@ async def analyze_product(
             detail=f"Error processing sales data: {str(e)}"
         )
 
-    # In Slice 1: return deterministic sales trends with initial observations
-    # Slice 2 will wire live Gemini multimodal reasoning
+    # 2. Multimodal Reasoning with Gemini
+    try:
+        multimodal_payload = run_multimodal_analysis(
+            image_bytes=image_bytes,
+            mime_type=mime_type,
+            product_name=product_name,
+            sales_trends=sales_trends,
+            df=df
+        )
+    except ValueError as ve:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(ve)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Multimodal AI reasoning error: {str(e)}"
+        )
+
+    # 3. Deliver Unified Validated Response
     return AnalysisResponse(
         success=True,
         product_name=product_name,
         sales_trends=sales_trends,
-        visual_observations=[
-            "Product image successfully ingested and verified.",
-            "Visual traits and cross-modal reasoning will be fully evaluated by Gemini in Slice 2."
-        ],
-        cross_modal_hypotheses=[],
-        recommended_experiments=[]
+        visual_observations=multimodal_payload.visual_observations,
+        cross_modal_hypotheses=multimodal_payload.cross_modal_hypotheses,
+        recommended_experiments=multimodal_payload.recommended_experiments,
     )
 
 if __name__ == "__main__":

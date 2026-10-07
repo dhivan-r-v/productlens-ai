@@ -9,7 +9,7 @@ Build mode: learn
 
 ## Slices
 
-- [ ] **1. Bootstrap app, UI scaffold, and deterministic sales trends**
+- [x] **1. Bootstrap app, UI scaffold, and deterministic sales trends**
   Becomes usable: A running local web app at `http://127.0.0.1:8000` with the crisp light-theme interface. The user can load sample data or upload a sales CSV, see the image preview, and view deterministic Sales Data Trends (revenue, units, average price, trajectory) calculated by Pandas in Card 1.
   Why now: Bootstraps the project scaffold, dependencies, sample data, and static UI, delivering immediate working evidence of the deterministic data pipeline before adding AI complexity.
   PRD ref: `prd.md > The Core Journey` (steps 1–2), `prd.md > Features and Behavior > 1. File Ingestion & Validation`, `prd.md > Features and Behavior > 2. Multimodal Analysis & Structured Cards (Card 1)`
@@ -19,7 +19,7 @@ Build mode: learn
   Learner check: Open `http://127.0.0.1:8000`, click "Load Sample Data", and confirm the product preview displays and the Sales Trends card renders total revenue, units sold, and average price.
   Commit: `Bootstrap app and implement deterministic sales trends`
 
-- [ ] **2. Multimodal Gemini reasoning and 4-card results delivery**
+- [x] **2. Multimodal Gemini reasoning and 4-card results delivery**
   Becomes usable: The core multimodal kernel runs end-to-end. When the user clicks "Analyze Product", the backend passes the image and sales metrics to Gemini with strict hypothesis prompting and response schemas, validates the payload with Pydantic, and renders all 4 cards (Sales Trends, Visual Observations, Cross-Modal Hypotheses, Recommended Experiments).
   Why now: Proves the core kernel and highest technical unknown (multimodal AI integration + structured output) early in the build.
   PRD ref: `prd.md > The Core Journey` (steps 3–4), `prd.md > Features and Behavior > 2. Multimodal Analysis & Structured Cards (Cards 2, 3, 4)`
@@ -41,7 +41,7 @@ Build mode: learn
 
 ## Hands-on Checkpoints
 
-- [ ] Early usable behavior explored — Slice 1 (Bootstrap & Sales Trends)
+- [x] Early usable behavior explored — Slice 1 (Bootstrap & Sales Trends)
 - [ ] Final kick-the-tires exploration and feedback completed
 
 ## Final Review
