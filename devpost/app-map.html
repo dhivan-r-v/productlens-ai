@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ProductLens AI — App Map & Architecture Guide</title>
+  <style>
+    :root {
+      --bg: #F8FAFC;
+      --card-bg: #FFFFFF;
+      --border: #E2E8F0;
+      --text-main: #0F172A;
+      --text-muted: #64748B;
+      --primary: #1E3A8A;
+      --accent: #2563EB;
+      --emerald: #059669;
+      --code-bg: #F1F5F9;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text-main);
+      line-height: 1.6;
+      padding: 2.5rem 1.5rem 4rem;
+    }
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+    }
+    header {
+      margin-bottom: 2.5rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 0.25rem;
+    }
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+    .badge {
+      display: inline-block;
+      margin-top: 0.75rem;
+      background: #EFF6FF;
+      color: var(--accent);
+      padding: 0.25rem 0.6rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.75rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.05);
+    }
+    h2 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-bottom: 1rem;
+    }
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: var(--primary);
+    }
+    p { margin-bottom: 1rem; font-size: 0.95rem; }
+    .diagram-container {
+      background: var(--code-bg);
+      border-radius: 8px;
+      padding: 1.25rem;
+      margin: 1.25rem 0;
+      overflow-x: auto;
+      text-align: center;
+    }
+    svg text { font-family: system-ui, sans-serif; font-size: 12px; }
+    .route-stop {
+      border-left: 3px solid var(--accent);
+      padding-left: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+    .route-stop:last-child { margin-bottom: 0; }
+    .stop-file {
+      font-family: monospace;
+      font-weight: 600;
+      color: var(--accent);
+      font-size: 0.9rem;
+      background: #EFF6FF;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      display: inline-block;
+      margin-bottom: 0.35rem;
+    }
+    ul { list-style-position: inside; margin-bottom: 1rem; font-size: 0.925rem; }
+    li { margin-bottom: 0.5rem; }
+    code {
+      font-family: monospace;
+      background: var(--code-bg);
+      padding: 0.2rem 0.4rem;
+      border-radius: 4px;
+      font-size: 0.875rem;
+    }
+    .reuse-box {
+      background: #F0FDF4;
+      border: 1px solid #BBF7D0;
+      border-left: 4px solid var(--emerald);
+      padding: 1.25rem;
+      border-radius: 8px;
+    }
+    .reuse-box h3 { color: var(--emerald); }
+    details {
+      margin-top: 1rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      background: var(--bg);
+    }
+    summary {
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: var(--text-main);
+    }
+    details p { margin-top: 0.75rem; margin-bottom: 0; font-size: 0.875rem; }
+    footer {
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 2rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>ProductLens AI — App Map</h1>
+      <p class="subtitle">Complete Architecture Snapshot & Reusable Takeaways</p>
+      <span class="badge">Build Verified • Commit Snapshot (0ddea1a)</span>
+    </header>
+
+    <!-- Overview -->
+    <section class="card">
+      <h2>App Overview & Core Journey</h2>
+      <p>
+        <strong>ProductLens AI</strong> is a proof-of-concept e-commerce auditing tool that bridges structured sales data with computer vision. When a merchant uploads a product photo and sales CSV, it executes deterministic math locally in Pandas, invokes Google Gemini for multimodal qualitative analysis, and renders four structured cards.
+      </p>
+
+      <!-- Architecture SVG Diagram -->
+      <div class="diagram-container">
+        <svg viewBox="0 0 760 140" width="100%" height="140" xmlns="http://www.w3.org/2000/svg">
+          <!-- Step 1: Frontend -->
+          <rect x="20" y="30" width="180" height="70" rx="8" fill="#FFFFFF" stroke="#3B82F6" stroke-width="2"/>
+          <text x="110" y="58" text-anchor="middle" font-weight="bold" fill="#0F172A">1. Web Interface</text>
+          <text x="110" y="78" text-anchor="middle" fill="#64748B">static/app.js (UI / Validation)</text>
+
+          <!-- Arrow 1 -> 2 -->
+          <path d="M 200 65 L 250 65" stroke="#94A3B8" stroke-width="2" marker-end="url(#arrow)"/>
+
+          <!-- Step 2: FastAPI / Pandas -->
+          <rect x="260" y="30" width="220" height="70" rx="8" fill="#FFFFFF" stroke="#1E3A8A" stroke-width="2"/>
+          <text x="370" y="58" text-anchor="middle" font-weight="bold" fill="#0F172A">2. Python Backend & Pandas</text>
+          <text x="370" y="78" text-anchor="middle" fill="#64748B">app/main.py + app/analyzer.py</text>
+
+          <!-- Arrow 2 -> 3 -->
+          <path d="M 480 65 L 530 65" stroke="#94A3B8" stroke-width="2" marker-end="url(#arrow)"/>
+
+          <!-- Step 3: Multimodal Gemini -->
+          <rect x="540" y="30" width="200" height="70" rx="8" fill="#FFFFFF" stroke="#059669" stroke-width="2"/>
+          <text x="640" y="58" text-anchor="middle" font-weight="bold" fill="#0F172A">3. Gemini 3.1 Flash</text>
+          <text x="640" y="78" text-anchor="middle" fill="#64748B">Image + Context -> 4 Cards</text>
+
+          <!-- Marker -->
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1 L 8 5 L 0 9 z" fill="#94A3B8"/>
+            </marker>
+          </defs>
+        </svg>
+      </div>
+    </section>
+
+    <!-- Guided Code Route -->
+    <section class="card">
+      <h2>The Core Code Route (Follow One Action)</h2>
+      <p>Here is where each part of the workflow lives in the project codebase:</p>
+
+      <div class="route-stop">
+        <span class="stop-file">static/app.js</span> (Lines 80–135)
+        <h3>Stop 1: Client Ingestion & Schema Inspection</h3>
+        <p>
+          When the user selects or drops a CSV, <code>handleCsvFile</code> reads the first line client-side using the HTML5 File API and verifies that required columns (<code>date, product, price, units_sold, revenue</code>) are present. If any column is missing, the Analyze button is disabled and an inline error is displayed before any network traffic is initiated.
+        </p>
+      </div>
+
+      <div class="route-stop">
+        <span class="stop-file">app/analyzer.py</span> (<code>process_sales_csv</code>)
+        <h3>Stop 2: Deterministic Data Processing (Pandas)</h3>
+        <p>
+          The uploaded CSV bytes are parsed into a Pandas DataFrame. Pandas calculates total revenue, unit volume, average selling price, and second-half trend trajectory. Math is kept 100% deterministic so numerical metrics never hallucinate.
+        </p>
+      </div>
+
+      <div class="route-stop">
+        <span class="stop-file">app/analyzer.py</span> (<code>run_multimodal_analysis</code>)
+        <h3>Stop 3: Multimodal AI & Pydantic Validation (Gemini)</h3>
+        <p>
+          The image bytes and the Pandas summary are sent to Google Gemini with strict prompt instructions: treat all connections as <em>testable hypotheses or factors worth investigating</em> and ground metrics directly in the provided CSV fields. Gemini's JSON output is validated against <code>app/schemas.py</code> before returning to the frontend.
+        </p>
+      </div>
+    </section>
+
+    <!-- Quick Modification Guide -->
+    <section class="card">
+      <h2>To Change This, Start Here</h2>
+      <ul>
+        <li><strong>Add/Change Required CSV Columns:</strong> Update <code>REQUIRED_COLUMNS</code> in <code>app/analyzer.py</code> and <code>REQUIRED_CSV_HEADERS</code> in <code>static/app.js</code>.</li>
+        <li><strong>Refine AI Prompt Rules:</strong> Edit the system prompt in <code>app/analyzer.py > run_multimodal_analysis</code>.</li>
+        <li><strong>Update Visual Theme or Colors:</strong> Modify CSS variables (<code>--primary-900</code>, <code>--emerald-600</code>) in <code>static/styles.css</code>.</li>
+        <li><strong>Modify Results Cards Layout:</strong> Adjust the HTML structure in <code>static/index.html</code> (lines 100–180).</li>
+      </ul>
+    </section>
+
+    <!-- Reusable Engineering Takeaway -->
+    <section class="card reuse-box">
+      <h3>A Practice to Reuse: Deterministic Logic + AI Qualitative Synthesis</h3>
+      <p>
+        <strong>What we practiced:</strong> Rather than passing raw CSV data to an LLM and asking it to calculate sales totals and trends, we delegated arithmetic to <strong>Pandas</strong> and qualitative reasoning (aesthetic evaluation, cross-modal hypotheses) to <strong>Gemini</strong>.
+      </p>
+      <p>
+        <strong>Why this matters on future projects:</strong> Large language models are probabilistic text predictors, not calculation engines. Using Python for deterministic data transformations and reserving the model for visual synthesis, pattern interpretation, and hypothesis framing makes AI applications vastly more reliable, auditable, and cost-efficient.
+      </p>
+    </section>
+
+    <!-- How to Run -->
+    <section class="card">
+      <h2>How to Run This Project</h2>
+      <p>To run the application locally at any time:</p>
+      <div class="diagram-container" style="text-align: left; padding: 1rem;">
+        <code>python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload</code>
+      </div>
+      <p>Then open <code>http://127.0.0.1:8000</code> in your browser.</p>
+    </section>
+
+    <footer>
+      <p>ProductLens AI • Generated for Devpost Learn "Build With AI: Basics" Hackathon</p>
+    </footer>
+  </div>
+</body>
+</html>

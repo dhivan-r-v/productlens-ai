@@ -42,23 +42,26 @@ Build mode: learn
 ## Hands-on Checkpoints
 
 - [x] Early usable behavior explored — Slice 1 (Bootstrap & Sales Trends)
-- [ ] Final kick-the-tires exploration and feedback completed
+- [x] Final kick-the-tires exploration and feedback completed
 
 ## Final Review
 
-- [ ] Final review complete — feedback resolved and learner confirms ready to ship
+- [x] Final review complete — feedback resolved and learner confirms ready to ship
 
 ## Code Tour and App Map
 
-- [ ] Learning activity complete — guided route, focused alternative, prior practice connected, or brief recap
-- [ ] Optional edit and transfer reflection addressed — offered/declined/already covered/not applicable as appropriate
-- [ ] `devpost/app-map.html` generated from finished code, checked, and shown, including a project-grounded practice to reuse
+- [x] Learning activity complete — guided route, focused alternative, prior practice connected, or brief recap
+- [x] Optional edit and transfer reflection addressed — offered/declined/already covered/not applicable as appropriate
+- [x] `devpost/app-map.html` generated from finished code, checked, and shown, including a project-grounded practice to reuse
 
-Activity and evidence: [to be recorded upon completion]
-Route and stops: [to be recorded upon completion]
-Edit outcome: [to be recorded upon completion]
-Reflection: [to be recorded upon completion]
-Activity mode: [to be recorded upon completion]
+Activity and evidence: Brief evidence-based recap and standalone architecture guide generated. Verified end-to-end user journey: sample data loading, image preview, CSV validation, 4 structured cards, inline error handling, and clean session reset.
+Route and stops: Mapped 3 key stops in devpost/app-map.html: (1) static/app.js (client ingestion and header verification), (2) app/analyzer.py (deterministic Pandas calculations), and (3) app/analyzer.py (multimodal Gemini reasoning with Pydantic validation).
+Edit outcome: Declined / not applicable — learner confirmed all behavior matches expectations and requested zero additional scope or edits.
+Reflection: Offered takeaway connecting deterministic data processing in Pandas with qualitative multimodal synthesis in Gemini; no further questions raised.
+Activity mode: recap
 
 ## Revisions
+
+- Slice 2: Added resilient model fallback across `gemini-3.1-flash-lite`, `gemini-3.8-flash`, and `gemini-3-flash-preview` to prevent transient 503 capacity spikes. Constrained prompt and schema so all metrics strictly reference available CSV fields unless labeled as requiring external analytics tracking.
+- Slice 3: Added client-side header verification in `static/app.js` to disable the Analyze Product button immediately when an invalid CSV is selected, complementing backend HTTP 422 validation.
 
