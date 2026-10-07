@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ProductLens AI — Multimodal Product & Sales Auditor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="logo-mark">PL</div>
+        <div>
+          <h1>ProductLens AI</h1>
+          <p class="subtitle">Multimodal Product & Sales Auditor for E-Commerce Merchants</p>
+        </div>
+      </div>
+      <div class="badge-tag">Proof of Concept</div>
+    </header>
+
+    <!-- Alert / Notification Banner -->
+    <div id="alertBanner" class="alert-banner hidden" role="alert"></div>
+
+    <!-- Main Input Section -->
+    <section class="card input-section" id="inputSection">
+      <div class="section-header">
+        <h2>1. Provide Product Inputs</h2>
+        <p>Upload your product photograph alongside historical sales records, or test instantly with pre-bundled data.</p>
+      </div>
+
+      <div class="dropzones-grid">
+        <!-- Image Upload Card -->
+        <div class="dropzone-card" id="imageDropzone">
+          <label class="dropzone-label" for="imageInput">
+            <div class="dropzone-content" id="imagePlaceholder">
+              <div class="icon-bubble">📷</div>
+              <span class="dropzone-title">Upload Product Image</span>
+              <span class="dropzone-hint">PNG, JPG, or WEBP (up to 10MB)</span>
+            </div>
+            <div class="image-preview-container hidden" id="imagePreviewContainer">
+              <img id="imagePreview" alt="Product preview" />
+              <button type="button" class="btn-remove" id="removeImageBtn" title="Remove image">&times;</button>
+            </div>
+          </label>
+          <input type="file" id="imageInput" accept="image/png, image/jpeg, image/webp" class="visually-hidden">
+        </div>
+
+        <!-- CSV Upload Card -->
+        <div class="dropzone-card" id="csvDropzone">
+          <label class="dropzone-label" for="csvInput">
+            <div class="dropzone-content" id="csvPlaceholder">
+              <div class="icon-bubble">📊</div>
+              <span class="dropzone-title">Upload Sales CSV</span>
+              <span class="dropzone-hint">Required headers: date, product, price, units_sold, revenue</span>
+            </div>
+            <div class="file-info-container hidden" id="csvInfoContainer">
+              <div class="file-icon">📄</div>
+              <div class="file-details">
+                <span class="file-name" id="csvFileName">sales_data.csv</span>
+                <span class="file-status" id="csvFileStatus">Ready for analysis</span>
+              </div>
+              <button type="button" class="btn-remove" id="removeCsvBtn" title="Remove CSV">&times;</button>
+            </div>
+          </label>
+          <input type="file" id="csvInput" accept=".csv" class="visually-hidden">
+        </div>
+      </div>
+
+      <!-- Action Toolbar -->
+      <div class="action-bar">
+        <button type="button" class="btn btn-secondary" id="loadSampleBtn">
+          <span>⚡ Load Sample Data</span>
+        </button>
+        <button type="button" class="btn btn-primary" id="analyzeBtn" disabled>
+          <span>Analyze Product</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Loading State View -->
+    <div class="card loading-card hidden" id="loadingCard">
+      <div class="spinner"></div>
+      <h3 id="loadingTitle">Analyzing your product and sales data...</h3>
+      <p id="loadingSubtext">Correlating visual presentation with numerical sales trajectories...</p>
+    </div>
+
+    <!-- Results Section -->
+    <section class="results-section hidden" id="resultsSection">
+      <div class="results-header">
+        <div>
+          <h2>2. Audit Analysis & Insights</h2>
+          <p id="resultsProductTitle">Product: Aura Minimalist Ceramic Tumbler</p>
+        </div>
+        <button type="button" class="btn btn-outline" id="resetBtn">
+          <span>Analyze Another Product</span>
+        </button>
+      </div>
+
+      <!-- Two-Column Layout: Visual Anchor + Cards -->
+      <div class="results-layout">
+        <!-- Visual Anchor Column -->
+        <aside class="product-anchor-card">
+          <div class="anchor-image-wrapper">
+            <img id="anchorImagePreview" alt="Inspected product" />
+          </div>
+          <div class="anchor-meta">
+            <span class="meta-label">Inspected Subject</span>
+            <span class="meta-title" id="anchorProductText">Aura Ceramic Tumbler</span>
+            <span class="meta-badge" id="anchorDataBadge">8 Data Points</span>
+          </div>
+        </aside>
+
+        <!-- Structured 4-Card Column -->
+        <main class="cards-stack">
+          <!-- Card 1: Sales Data Trends (Pandas Deterministic) -->
+          <article class="audit-card" id="cardSalesTrends">
+            <div class="card-header">
+              <span class="card-pill pill-blue">Card 1</span>
+              <h3>Sales Data Trends</h3>
+            </div>
+            <div class="metrics-grid" id="metricsGrid">
+              <div class="metric-box">
+                <span class="metric-label">Total Revenue</span>
+                <span class="metric-value" id="valTotalRevenue">$0.00</span>
+              </div>
+              <div class="metric-box">
+                <span class="metric-label">Total Units Sold</span>
+                <span class="metric-value" id="valTotalUnits">0</span>
+              </div>
+              <div class="metric-box">
+                <span class="metric-label">Average Price</span>
+                <span class="metric-value" id="valAvgPrice">$0.00</span>
+              </div>
+              <div class="metric-box highlight">
+                <span class="metric-label">Trajectory</span>
+                <span class="metric-value trend" id="valTrajectory">Stable</span>
+              </div>
+            </div>
+            <div class="bullets-container">
+              <h4>Key Data Observations:</h4>
+              <ul class="bullet-list" id="salesBulletsList"></ul>
+            </div>
+          </article>
+
+          <!-- Card 2: Visual Observations -->
+          <article class="audit-card" id="cardVisualObservations">
+            <div class="card-header">
+              <span class="card-pill pill-purple">Card 2</span>
+              <h3>Visual Product Observations</h3>
+            </div>
+            <p class="card-explainer">Objective visual factors observed from the product photograph:</p>
+            <ul class="bullet-list" id="visualObsList"></ul>
+          </article>
+
+          <!-- Card 3: Cross-Modal Hypotheses (The Kernel) -->
+          <article class="audit-card kernel-card" id="cardCrossModalHypotheses">
+            <div class="card-header">
+              <span class="card-pill pill-indigo">Card 3 • Core Kernel</span>
+              <h3>Cross-Modal Hypotheses</h3>
+            </div>
+            <p class="card-explainer">Synthesized hypotheses connecting visual cues to sales data (presented as factors to investigate, not causal certainties):</p>
+            <div class="hypotheses-list" id="hypothesesList"></div>
+          </article>
+
+          <!-- Card 4: Recommended Experiments -->
+          <article class="audit-card" id="cardExperiments">
+            <div class="card-header">
+              <span class="card-pill pill-emerald">Card 4</span>
+              <h3>Recommended Action Plan</h3>
+            </div>
+            <p class="card-explainer">Grounded, testable experiments to explore based on these findings:</p>
+            <div class="experiments-list" id="experimentsList"></div>
+          </article>
+        </main>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <p>ProductLens AI • Built for Devpost Learn "Build With AI: Basics" Hackathon</p>
+    </footer>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

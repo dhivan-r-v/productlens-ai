@@ -1,0 +1,12 @@
+# Devpost personal learning profile (keeps personal learning context out of commits)
+/devpost/learner-profile.md
+
+# Local credential files
+.env
+.env.*
+!.env.example
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
