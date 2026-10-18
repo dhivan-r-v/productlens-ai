@@ -66,7 +66,8 @@ def process_sales_csv(csv_bytes: bytes) -> Tuple[str, SalesTrends, pd.DataFrame]
     # Deterministic calculations
     total_rev = round(float(df["revenue"].sum()), 2)
     total_units = int(df["units_sold"].sum())
-    avg_price = round(float(df["price"].mean()), 2) if len(df) > 0 else 0.0
+    # Revenue-weighted average: what a unit actually sold for across the period
+    avg_price = round(total_rev / total_units, 2) if total_units > 0 else 0.0
 
     # Determine trend trajectory
     trend_summary = "Stable sales performance"

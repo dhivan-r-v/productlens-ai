@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 class SalesTrends(BaseModel):
     total_revenue: float = Field(..., description="Total cumulative revenue formatted as a float")
     total_units_sold: int = Field(..., description="Total cumulative units sold")
-    average_price: float = Field(..., description="Average price per unit")
+    average_price: float = Field(..., description="Average price per unit (total revenue / total units sold)")
     overall_trend: str = Field(..., description="Short summary of overall trend direction (e.g. Upward, Downward, Stable)")
     trend_bullets: List[str] = Field(default_factory=list, description="2-3 key observations about changes over time")
 
