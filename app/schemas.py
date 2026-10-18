@@ -9,9 +9,10 @@ class SalesTrends(BaseModel):
     trend_bullets: List[str] = Field(default_factory=list, description="2-3 key observations about changes over time")
 
 class CrossModalHypothesis(BaseModel):
-    hypothesis: str = Field(..., description="Testable hypothesis connecting product visual presentation with sales trends")
+    hypothesis: str = Field(..., description="Hedged, testable hypothesis starting with 'Factor worth investigating:'; never a causal claim")
     supporting_data: str = Field(..., description="Specific numerical sales evidence supporting the hypothesis")
     visual_factor: str = Field(..., description="Specific visual attribute or packaging element observed in the image")
+    how_to_test: str = Field(..., description="One concrete way the seller could confirm or rule out this hypothesis")
 
 class RecommendedExperiment(BaseModel):
     action: str = Field(..., description="Clear title of the testable experiment")

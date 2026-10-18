@@ -207,7 +207,7 @@
         <span class="stop-file">app/analyzer.py</span> (<code>process_sales_csv</code>)
         <h3>Stop 2: Deterministic Data Processing (Pandas)</h3>
         <p>
-          The uploaded CSV bytes are parsed into a Pandas DataFrame. Pandas calculates total revenue, unit volume, average selling price, and second-half trend trajectory. Math is kept 100% deterministic so numerical metrics never hallucinate.
+          The uploaded CSV bytes are parsed into a Pandas DataFrame. Pandas calculates total revenue, unit volume, average selling price (revenue ÷ units), second-half trend trajectory, and unit volume before/after each price change. Math is kept 100% deterministic so numerical metrics never hallucinate.
         </p>
       </div>
 

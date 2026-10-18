@@ -24,6 +24,7 @@ CANDIDATE_MODELS = [
     "gemini-3.8-flash",
     "gemini-3-flash-preview",
 ]
+HYPOTHESIS_PREFIX = "Factor worth investigating:"
 
 def process_sales_csv(csv_bytes: bytes) -> Tuple[str, SalesTrends, pd.DataFrame]:
     """
@@ -99,8 +100,10 @@ def process_sales_csv(csv_bytes: bytes) -> Tuple[str, SalesTrends, pd.DataFrame]
         recent_units = df.iloc[-1]["units_sold"]
         initial_units = df.iloc[0]["units_sold"]
         trend_bullets.append(
-            f"Started at {initial_units} units ({df.iloc[0]['date']}) and closed at {recent_units} units ({df.iloc[-1]['date']}) at an average price of ${avg_price:,.2f}."
+            f"Started at {initial_units} units ({df.iloc[0]['date']}) at ${df.iloc[0]['price']:,.2f} and closed at {recent_units} units ({df.iloc[-1]['date']}) at ${df.iloc[-1]['price']:,.2f}."
         )
+
+        trend_bullets.extend(describe_price_changes(df))
     else:
         trend_bullets.append(f"Recorded single entry of {total_units} units generating ${total_rev:,.2f}.")
 
@@ -113,6 +116,39 @@ def process_sales_csv(csv_bytes: bytes) -> Tuple[str, SalesTrends, pd.DataFrame]
     )
 
     return product_name, sales_trends, df
+
+
+def describe_price_changes(df: pd.DataFrame) -> List[str]:
+    """
+    Splits the sorted sales log into runs of consecutive rows at the same price and
+    compares unit volume across each price change. Also flags when units were already
+    falling before a change, so a decline is not wrongly blamed on the new price.
+    """
+    bullets: List[str] = []
+    segment_ids = (df["price"] != df["price"].shift()).cumsum()
+    segments = [seg for _, seg in df.groupby(segment_ids, sort=False)]
+
+    for before, after in zip(segments, segments[1:]):
+        old_price = before["price"].iloc[0]
+        new_price = after["price"].iloc[0]
+        direction = "cut" if new_price < old_price else "increase"
+        bullets.append(
+            f"Price {direction} from ${old_price:,.2f} to ${new_price:,.2f} on {after['date'].iloc[0]}: "
+            f"average weekly units {before['units_sold'].mean():,.1f} at ${old_price:,.2f} vs "
+            f"{after['units_sold'].mean():,.1f} at ${new_price:,.2f}."
+        )
+
+        # Was volume already falling at the old price? Compare its peak to its last period.
+        if len(before) >= 2:
+            peak_units = int(before["units_sold"].max())
+            last_units = int(before["units_sold"].iloc[-1])
+            if last_units < peak_units:
+                bullets.append(
+                    f"Units were already declining before the price {direction} "
+                    f"({peak_units} → {last_units} while still at ${old_price:,.2f})."
+                )
+
+    return bullets
 
 
 def run_multimodal_analysis(
@@ -178,8 +214,11 @@ The user has uploaded a product photograph along with historical sales records.
    - Synthesize the visual presentation with the sales trends (units sold over time, price shifts, revenue trajectories).
    - For example: examine how packaging minimalism, perceived tier, or visual clarity might relate to price adjustments (e.g. price dropping from $32 to $28) and sales volume drop-offs.
    - CRITICAL REQUIREMENT: Present every connection strictly as a TESTABLE HYPOTHESIS or FACTOR WORTH INVESTIGATING.
-   - DO NOT claim that the product image or design definitively caused a sales outcome. Frame as: "Factor worth investigating: [Hypothesis]".
+   - Every `hypothesis` MUST begin with exactly "Factor worth investigating:" and use hedged language ("may", "could", "might").
+   - NEVER use causal wording such as "caused", "led to", "leading to", "resulted in", "contributing to", "driving", "due to", "because of", "fails to", or "is hindering". Describe co-occurrence instead (e.g., "may be related to", "coincides with"). You have correlational data from one product; you cannot know causes.
+   - Respect timing in the Key Trends above: if units were already declining before a price change, do not attribute the decline to that price change.
    - Each hypothesis must cite both the supporting sales data (using ONLY available fields: date, price, units sold, revenue) and the specific visual factor.
+   - Each hypothesis must include `how_to_test`: one concrete way the seller could confirm or rule it out.
 
 4. Recommended Experiments:
    - Provide 2 to 3 practical, grounded experiments the business owner can run.
@@ -213,6 +252,11 @@ Return your response strictly according to the provided schema.
             # Backend validation: parse with Pydantic
             payload_data = json.loads(response_text)
             validated_payload = MultimodalAnalysisPayload.model_validate(payload_data)
+
+            # Guarantee hypothesis framing even if the model skips the required prefix
+            for h in validated_payload.cross_modal_hypotheses:
+                if not h.hypothesis.lower().startswith(HYPOTHESIS_PREFIX.lower()):
+                    h.hypothesis = f"{HYPOTHESIS_PREFIX} {h.hypothesis}"
             return validated_payload
 
         except Exception as e:

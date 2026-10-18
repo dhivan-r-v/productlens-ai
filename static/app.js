@@ -341,6 +341,10 @@ document.addEventListener('DOMContentLoaded', () => {
               <strong>Visual Factor</strong>
               ${escapeHtml(h.visual_factor)}
             </div>
+            <div class="meta-field meta-field-wide">
+              <strong>How to Test</strong>
+              ${escapeHtml(h.how_to_test)}
+            </div>
           </div>
         `;
         hypothesesList.appendChild(item);

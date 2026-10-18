@@ -697,6 +697,10 @@ body {
   color: var(--text-secondary);
 }
 
+.meta-field-wide {
+  grid-column: 1 / -1;
+}
+
 .meta-field strong {
   color: var(--text-primary);
   display: block;
