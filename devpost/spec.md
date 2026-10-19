@@ -70,6 +70,8 @@ This shape builds directly on the learner's existing Python and data analysis fo
   uvicorn app.main:app --reload --port 8000
   ```
 - **Demo Access:** Open `http://127.0.0.1:8000` in any web browser.
+- **Public Repository:** https://github.com/dhivan-r-v/productlens-ai
+- **Demo Video:** _(to be added)_
 - **Demo Recording Target:** Demonstrable in a 1-to-2 minute screen recording (loading sample data, clicking Analyze, walking through the four result cards, clicking reset). Deployment to cloud is optional and not required.
 
 ## Look and Feel
