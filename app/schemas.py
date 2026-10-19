@@ -7,6 +7,11 @@ class SalesTrends(BaseModel):
     average_price: float = Field(..., description="Average price per unit (total revenue / total units sold)")
     overall_trend: str = Field(..., description="Short summary of overall trend direction (e.g. Upward, Downward, Stable)")
     trend_bullets: List[str] = Field(default_factory=list, description="2-3 key observations about changes over time")
+    # Optional funnel and returns metrics, present only when the CSV includes views / returns columns
+    total_views: Optional[int] = Field(None, description="Total listing views or sessions")
+    conversion_rate: Optional[float] = Field(None, description="Units sold / views, as a percentage")
+    total_returns: Optional[int] = Field(None, description="Total units returned")
+    return_rate: Optional[float] = Field(None, description="Units returned / units sold, as a percentage")
 
 class CrossModalHypothesis(BaseModel):
     hypothesis: str = Field(..., description="Hedged, testable hypothesis starting with 'Factor worth investigating:'; never a causal claim")

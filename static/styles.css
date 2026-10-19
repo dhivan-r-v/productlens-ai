@@ -583,10 +583,22 @@ body {
   margin-bottom: 1.25rem;
 }
 
+/* Six tiles (with views/returns) read better as two rows of three */
+.metrics-grid.has-extra-metrics {
+  grid-template-columns: repeat(3, 1fr);
+}
+
 @media (max-width: 650px) {
-  .metrics-grid {
+  .metrics-grid,
+  .metrics-grid.has-extra-metrics {
     grid-template-columns: repeat(2, 1fr);
   }
+}
+
+.metric-sub {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 0.15rem;
 }
 
 .metric-box {

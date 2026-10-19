@@ -43,6 +43,15 @@ Upload a JPG/PNG/WEBP product image and a CSV with these columns:
 | `units_sold` | `110` |
 | `revenue` | `3520.00` |
 
+Two **optional** columns unlock more analysis:
+
+| column | example | adds |
+| --- | --- | --- |
+| `views` (or `sessions`, `page_views`, `visits`) | `2200` | Conversion rate, plus a funnel signal: did fewer people see the listing, or did fewer viewers buy? |
+| `returns` (or `units_returned`, `returned`) | `4` | Return rate (units returned ÷ units sold) and its trend |
+
+The bundled sample data includes both.
+
 Common export headers are also accepted (for example `Order Date`, `Product Name`, `Unit Price`, `Qty`, `Total Sales`), and values like `$1,234.50` are parsed. Fewer than 4 rows triggers a limited-data warning.
 
 See `static/sample_data/sample_sales.csv`.

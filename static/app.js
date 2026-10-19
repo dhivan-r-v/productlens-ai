@@ -35,6 +35,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const valTotalUnits = document.getElementById('valTotalUnits');
   const valAvgPrice = document.getElementById('valAvgPrice');
   const valTrajectory = document.getElementById('valTrajectory');
+  const metricsGrid = document.getElementById('metricsGrid');
+  const boxConversion = document.getElementById('boxConversion');
+  const valConversion = document.getElementById('valConversion');
+  const subConversion = document.getElementById('subConversion');
+  const boxReturns = document.getElementById('boxReturns');
+  const valReturns = document.getElementById('valReturns');
+  const subReturns = document.getElementById('subReturns');
   const salesBulletsList = document.getElementById('salesBulletsList');
   const visualObsList = document.getElementById('visualObsList');
   const hypothesesList = document.getElementById('hypothesesList');
@@ -46,7 +53,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let isUsingSample = false;
 
   const REQUIRED_CSV_HEADERS = ['date', 'product', 'price', 'units_sold', 'revenue'];
-  // Mirrors COLUMN_ALIASES in app/analyzer.py so common store-export headers pass the client check
+  // Mirrors the required-column entries of COLUMN_ALIASES in app/analyzer.py so common
+  // store-export headers pass the client check (optional views/returns are not checked here)
   const CSV_HEADER_ALIASES = {
     date: ['order_date', 'week', 'week_start', 'period', 'day'],
     product: ['product_name', 'item', 'item_name', 'title', 'sku'],
@@ -320,6 +328,22 @@ document.addEventListener('DOMContentLoaded', () => {
     valTotalUnits.textContent = data.sales_trends.total_units_sold.toLocaleString();
     valAvgPrice.textContent = `$${data.sales_trends.average_price.toFixed(2)}`;
     valTrajectory.textContent = data.sales_trends.overall_trend;
+
+    // Optional funnel / returns tiles
+    const st = data.sales_trends;
+    const hasConversion = st.conversion_rate != null;
+    const hasReturns = st.return_rate != null;
+    boxConversion.classList.toggle('hidden', !hasConversion);
+    boxReturns.classList.toggle('hidden', !hasReturns);
+    metricsGrid.classList.toggle('has-extra-metrics', hasConversion || hasReturns);
+    if (hasConversion) {
+      valConversion.textContent = `${st.conversion_rate.toFixed(1)}%`;
+      subConversion.textContent = `${st.total_views.toLocaleString()} views`;
+    }
+    if (hasReturns) {
+      valReturns.textContent = `${st.return_rate.toFixed(1)}%`;
+      subReturns.textContent = `${st.total_returns.toLocaleString()} units returned`;
+    }
 
     salesBulletsList.innerHTML = '';
     (data.sales_trends.trend_bullets || []).forEach(bullet => {

@@ -46,6 +46,7 @@ The user opens the app, uploads a product image and a sales CSV (or selects samp
   - Image upload (JPG/PNG) + small sales CSV upload (product, price, units sold, revenue over time) with pre-bundled sample dataset for instant testing.
   - Multimodal LLM integration that produces structured, separated outputs (Data Trends, Visual Features, Cross-Modal Hypotheses, Actionable Recommendations).
   - Clean, responsive single-page web interface.
+  - Optional `views` and `returns` CSV columns (added pre-ship): conversion rate and a funnel signal separate "fewer people saw it" from "fewer viewers bought it", and return rate links presentation to returns. Conversion is computed only from data the seller explicitly provides, consistent with the cut on attribution modeling below.
 
 ## Later
 - Multi-product comparison (comparing top-seller vs. underperforming product side-by-side).

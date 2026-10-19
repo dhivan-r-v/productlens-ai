@@ -37,7 +37,13 @@ COLUMN_ALIASES = {
     "price": ["unit_price", "selling_price", "avg_price"],
     "units_sold": ["units", "qty", "quantity", "quantity_sold", "units_ordered"],
     "revenue": ["sales", "total_sales", "net_sales", "gross_sales", "amount", "total"],
+    # Optional columns: unlock conversion and return-rate analysis when present
+    "views": ["sessions", "page_views", "pageviews", "visits", "listing_views"],
+    "returns": ["returned", "units_returned", "returned_units", "return_units"],
 }
+OPTIONAL_COLUMNS = ["views", "returns"]
+# Relative change between halves that counts as a meaningful shift
+SHIFT_THRESHOLD_PCT = 15
 
 
 def normalize_header(name: str) -> str:
@@ -88,6 +94,9 @@ def process_sales_csv(csv_bytes: bytes) -> Tuple[str, SalesTrends, pd.DataFrame]
         df["price"] = to_number(df["price"]).fillna(0.0)
         df["units_sold"] = to_number(df["units_sold"]).fillna(0).astype(int)
         df["revenue"] = to_number(df["revenue"]).fillna(0.0)
+        for col in OPTIONAL_COLUMNS:
+            if col in df.columns:
+                df[col] = to_number(df[col]).fillna(0).astype(int)
     except Exception as e:
         raise ValueError(f"Failed to convert numerical columns: {str(e)}")
 
@@ -146,8 +155,15 @@ def process_sales_csv(csv_bytes: bytes) -> Tuple[str, SalesTrends, pd.DataFrame]
         )
 
         trend_bullets.extend(describe_price_changes(df))
+        if "views" in df.columns:
+            trend_bullets.extend(describe_funnel(df))
+        if "returns" in df.columns:
+            trend_bullets.extend(describe_returns(df))
     else:
         trend_bullets.append(f"Recorded single entry of {total_units} units generating ${total_rev:,.2f}.")
+
+    total_views = int(df["views"].sum()) if "views" in df.columns else None
+    total_returns = int(df["returns"].sum()) if "returns" in df.columns else None
 
     sales_trends = SalesTrends(
         total_revenue=total_rev,
@@ -155,9 +171,79 @@ def process_sales_csv(csv_bytes: bytes) -> Tuple[str, SalesTrends, pd.DataFrame]
         average_price=avg_price,
         overall_trend=trend_summary,
         trend_bullets=trend_bullets,
+        total_views=total_views,
+        conversion_rate=pct(total_units, total_views),
+        total_returns=total_returns,
+        return_rate=pct(total_returns, total_units),
     )
 
     return product_name, sales_trends, df
+
+
+def pct(part: Optional[float], whole: Optional[float]) -> Optional[float]:
+    if part is None or not whole:
+        return None
+    return round(part / whole * 100, 2)
+
+
+def relative_change(before: float, after: float) -> float:
+    return (after - before) / before * 100 if before else 0.0
+
+
+def split_halves(df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    half_idx = len(df) // 2
+    return df.iloc[:half_idx], df.iloc[half_idx:]
+
+
+def describe_funnel(df: pd.DataFrame) -> List[str]:
+    """
+    Separates "fewer people saw it" from "fewer viewers bought it" by comparing
+    views per period and conversion (units / views) between the two halves.
+    """
+    first, second = split_halves(df)
+    conv_1 = pct(first["units_sold"].sum(), first["views"].sum())
+    conv_2 = pct(second["units_sold"].sum(), second["views"].sum())
+    if conv_1 is None or conv_2 is None:
+        return []
+
+    views_1, views_2 = first["views"].mean(), second["views"].mean()
+    views_change = relative_change(views_1, views_2)
+    conv_change = relative_change(conv_1, conv_2)
+
+    bullets = [
+        f"Conversion rate moved from {conv_1:.1f}% to {conv_2:.1f}% (first vs second half), while average views "
+        f"per period went from {views_1:,.0f} to {views_2:,.0f} ({views_change:+.0f}%)."
+    ]
+
+    views_fell = views_change <= -SHIFT_THRESHOLD_PCT
+    conv_fell = conv_change <= -SHIFT_THRESHOLD_PCT
+    if conv_fell and not views_fell:
+        bullets.append(
+            "Funnel signal: views held roughly steady but fewer viewers bought, which points to the listing itself "
+            "(photo, price or description) rather than visibility."
+        )
+    elif views_fell and not conv_fell:
+        bullets.append(
+            "Funnel signal: fewer people viewed the listing while conversion held up, which points to visibility or "
+            "traffic rather than the listing itself."
+        )
+    elif views_fell and conv_fell:
+        bullets.append("Funnel signal: both views and conversion fell, so visibility and the listing both shifted.")
+    return bullets
+
+
+def describe_returns(df: pd.DataFrame) -> List[str]:
+    """Reports how the share of sold units coming back changed between the two halves."""
+    first, second = split_halves(df)
+    rate_1 = pct(first["returns"].sum(), first["units_sold"].sum())
+    rate_2 = pct(second["returns"].sum(), second["units_sold"].sum())
+    if rate_1 is None or rate_2 is None:
+        return []
+
+    bullets = [f"Return rate moved from {rate_1:.1f}% to {rate_2:.1f}% of units sold (first vs second half)."]
+    if relative_change(rate_1, rate_2) >= SHIFT_THRESHOLD_PCT:
+        bullets.append("Returns are rising as a share of units sold.")
+    return bullets
 
 
 def describe_price_changes(df: pd.DataFrame) -> List[str]:
@@ -218,12 +304,55 @@ def run_multimodal_analysis(
     client = genai.Client(api_key=key)
 
     # Format historical records summary for prompt context
+    has_views = "views" in df.columns
+    has_returns = "returns" in df.columns
+
     records_summary = []
     for idx, row in df.iterrows():
-        records_summary.append(
-            f"- Date: {row['date']}, Price: ${row['price']}, Units Sold: {row['units_sold']}, Revenue: ${row['revenue']}"
-        )
+        line = f"- Date: {row['date']}, Price: ${row['price']}, Units Sold: {row['units_sold']}, Revenue: ${row['revenue']}"
+        if has_views:
+            line += f", Views: {row['views']}"
+        if has_returns:
+            line += f", Returns: {row['returns']}"
+        records_summary.append(line)
     records_text = "\n".join(records_summary)
+
+    tracked_fields = ["date", "product", "price", "units_sold", "revenue"] + [
+        col for col in OPTIONAL_COLUMNS if col in df.columns
+    ]
+    untracked_examples = ["repeat purchase rates", "customer retention", "click-through rate", "ad spend"]
+    if not has_views:
+        untracked_examples.append("conversion rate")
+    if not has_returns:
+        untracked_examples.append("return rate")
+
+    optional_metrics = []
+    if has_views:
+        optional_metrics.append(f"- Total Views: {sales_trends.total_views:,}")
+        optional_metrics.append(f"- Overall Conversion Rate (units / views): {sales_trends.conversion_rate}%")
+    if has_returns:
+        optional_metrics.append(f"- Total Units Returned: {sales_trends.total_returns:,}")
+        optional_metrics.append(f"- Overall Return Rate (returns / units sold): {sales_trends.return_rate}%")
+    optional_metrics_text = ("\n" + "\n".join(optional_metrics)) if optional_metrics else ""
+
+    funnel_rules = []
+    if has_views:
+        funnel_rules.append(
+            "   - Views are available. Use the funnel signal in Key Trends to weigh visual hypotheses: they are most relevant "
+            "when views held steady but conversion fell. If views fell, name visibility/traffic as the larger factor and keep "
+            "visual hypotheses secondary. Conversion rate is an in-dataset metric you may cite and measure."
+        )
+    if has_returns:
+        funnel_rules.append(
+            "   - Returns are available. Consider whether the photo may set expectations (finish, size, color, scale) that "
+            "differ from the delivered product, citing the return-rate trend. Return rate is an in-dataset metric you may cite and measure."
+        )
+    if not funnel_rules:
+        funnel_rules.append(
+            "   - No views or returns data was provided, so you cannot tell whether a decline comes from visibility or from the "
+            "listing itself. Acknowledge this where relevant."
+        )
+    funnel_rules_text = "\n".join(funnel_rules)
 
     prompt = f"""You are ProductLens AI, an expert e-commerce product and merchandising auditor for independent sellers.
 You are evaluating the product "{product_name}".
@@ -234,7 +363,7 @@ The user has uploaded a product photograph along with historical sales records.
 - Total Revenue: ${sales_trends.total_revenue:,.2f}
 - Total Units Sold: {sales_trends.total_units_sold}
 - Average Price: ${sales_trends.average_price:,.2f}
-- Overall Trajectory: {sales_trends.overall_trend}
+- Overall Trajectory: {sales_trends.overall_trend}{optional_metrics_text}
 - Key Trends:
 {chr(10).join('- ' + b for b in sales_trends.trend_bullets)}
 
@@ -243,9 +372,10 @@ The user has uploaded a product photograph along with historical sales records.
 
 ### STRICT DATA-GROUNDING & REASONING RULES:
 1. Data-Grounding Boundaries:
-   - The provided data ONLY tracks: `date`, `product`, `price`, `units_sold`, and `revenue`.
-   - Do NOT assume or claim to measure metrics not in the dataset (such as repeat purchase rates, customer retention, click-through rate, or conversion rate).
-   - If a recommended experiment suggests measuring an external metric not present in this sales CSV (like CTR or page conversion rate), you MUST explicitly label it as: "(requires external analytics tracking)". Otherwise, ground the outcome metric directly in the available sales fields (e.g., "Weekly units sold", "Gross weekly revenue", or "Realized revenue per unit").
+   - The provided data ONLY tracks: {', '.join(f'`{f}`' for f in tracked_fields)}.
+   - Do NOT assume or claim to measure metrics not in the dataset (such as {', '.join(untracked_examples)}).
+   - If a recommended experiment suggests measuring an external metric not present in this sales CSV, you MUST explicitly label it as: "(requires external analytics tracking)". Otherwise, ground the outcome metric directly in the available fields (e.g., "Weekly units sold", "Gross weekly revenue", or "Realized revenue per unit").
+{funnel_rules_text}
 
 2. Visual Observations:
    - Carefully inspect the product image.
@@ -257,7 +387,7 @@ The user has uploaded a product photograph along with historical sales records.
    - For example: examine how packaging minimalism, perceived tier, or visual clarity might relate to price adjustments (e.g. price dropping from $32 to $28) and sales volume drop-offs.
    - CRITICAL REQUIREMENT: Present every connection strictly as a TESTABLE HYPOTHESIS or FACTOR WORTH INVESTIGATING.
    - Every `hypothesis` MUST begin with exactly "Factor worth investigating:" and use hedged language ("may", "could", "might").
-   - NEVER use causal wording such as "caused", "led to", "leading to", "resulted in", "contributing to", "driving", "due to", "because of", "fails to", or "is hindering". Describe co-occurrence instead (e.g., "may be related to", "coincides with"). You have correlational data from one product; you cannot know causes.
+   - NEVER use causal wording such as "caused", "led to", "leading to", "resulted in", "contributing to", "driving", "due to", "because of", "fails to", "failing to", or "is hindering". Describe co-occurrence instead (e.g., "may be related to", "coincides with"). You have correlational data from one product; you cannot know causes.
    - If the Key Trends above flag limited data, state that uncertainty in each hypothesis and keep claims especially tentative.
    - Respect timing in the Key Trends above: if units were already declining before a price change, do not attribute the decline to that price change.
    - Each hypothesis must cite both the supporting sales data (using ONLY available fields: date, price, units sold, revenue) and the specific visual factor.
@@ -269,7 +399,7 @@ The user has uploaded a product photograph along with historical sales records.
    - Each recommendation must specify:
      (a) action title
      (b) what specific change to test
-     (c) what concrete outcome metric to measure over a test period (e.g., "Weekly units sold over a 14-day test period" or "Weekly revenue at the new price tier"; if suggesting an external metric like conversion rate, explicitly append "(requires external analytics tracking)").
+     (c) what concrete outcome metric to measure over a test period (e.g., "Weekly units sold over a 14-day test period" or "Weekly revenue at the new price tier"; if suggesting a metric outside the tracked fields listed in rule 1, explicitly append "(requires external analytics tracking)"; never add that label to a metric computable from the tracked fields).
 
 Return your response strictly according to the provided schema.
 """
