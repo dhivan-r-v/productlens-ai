@@ -46,6 +46,14 @@ document.addEventListener('DOMContentLoaded', () => {
   let isUsingSample = false;
 
   const REQUIRED_CSV_HEADERS = ['date', 'product', 'price', 'units_sold', 'revenue'];
+  // Mirrors COLUMN_ALIASES in app/analyzer.py so common store-export headers pass the client check
+  const CSV_HEADER_ALIASES = {
+    date: ['order_date', 'week', 'week_start', 'period', 'day'],
+    product: ['product_name', 'item', 'item_name', 'title', 'sku'],
+    price: ['unit_price', 'selling_price', 'avg_price'],
+    units_sold: ['units', 'qty', 'quantity', 'quantity_sold', 'units_ordered'],
+    revenue: ['sales', 'total_sales', 'net_sales', 'gross_sales', 'amount', 'total'],
+  };
 
   // Banner helper
   function showAlert(msg, isError = true) {
@@ -117,9 +125,13 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const text = await file.text();
       const firstLine = text.split(/\r?\n/)[0] || '';
-      const headers = firstLine.split(',').map(h => h.trim().toLowerCase().replace(/\s+/g, '_'));
+      const headers = firstLine.split(',').map(h =>
+        h.trim().replace(/^"|"$/g, '').toLowerCase().replace(/-/g, ' ').trim().replace(/\s+/g, '_')
+      );
 
-      const missing = REQUIRED_CSV_HEADERS.filter(req => !headers.includes(req));
+      const missing = REQUIRED_CSV_HEADERS.filter(req =>
+        !headers.includes(req) && !CSV_HEADER_ALIASES[req].some(alias => headers.includes(alias))
+      );
       if (missing.length > 0) {
         csvFile = null;
         csvInput.value = '';

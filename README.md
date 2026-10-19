@@ -43,6 +43,8 @@ Upload a JPG/PNG/WEBP product image and a CSV with these columns:
 | `units_sold` | `110` |
 | `revenue` | `3520.00` |
 
+Common export headers are also accepted (for example `Order Date`, `Product Name`, `Unit Price`, `Qty`, `Total Sales`), and values like `$1,234.50` are parsed. Fewer than 4 rows triggers a limited-data warning.
+
 See `static/sample_data/sample_sales.csv`.
 
 ## How it works

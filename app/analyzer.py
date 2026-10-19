@@ -25,6 +25,41 @@ CANDIDATE_MODELS = [
     "gemini-3-flash-preview",
 ]
 HYPOTHESIS_PREFIX = "Factor worth investigating:"
+MIN_RELIABLE_PERIODS = 4
+# Low temperature keeps hypotheses steady across repeat runs on the same inputs
+MODEL_TEMPERATURE = 0.2
+
+# Common header variants from store exports, mapped to the required column names.
+# Keep in sync with CSV_HEADER_ALIASES in static/app.js.
+COLUMN_ALIASES = {
+    "date": ["order_date", "week", "week_start", "period", "day"],
+    "product": ["product_name", "item", "item_name", "title", "sku"],
+    "price": ["unit_price", "selling_price", "avg_price"],
+    "units_sold": ["units", "qty", "quantity", "quantity_sold", "units_ordered"],
+    "revenue": ["sales", "total_sales", "net_sales", "gross_sales", "amount", "total"],
+}
+
+
+def normalize_header(name: str) -> str:
+    return "_".join(str(name).strip().lower().replace("-", " ").split())
+
+
+def apply_column_aliases(df: pd.DataFrame) -> pd.DataFrame:
+    """Renames the first matching alias to each required column that is missing."""
+    renames = {}
+    for canonical, aliases in COLUMN_ALIASES.items():
+        if canonical in df.columns:
+            continue
+        match = next((a for a in aliases if a in df.columns and a not in renames), None)
+        if match:
+            renames[match] = canonical
+    return df.rename(columns=renames)
+
+
+def to_number(series: pd.Series) -> pd.Series:
+    """Strips currency symbols and thousands separators (e.g. "$1,234.50") before converting."""
+    cleaned = series.astype(str).str.replace(r"[^0-9.\-]", "", regex=True)
+    return pd.to_numeric(cleaned, errors="coerce")
 
 def process_sales_csv(csv_bytes: bytes) -> Tuple[str, SalesTrends, pd.DataFrame]:
     """
@@ -37,7 +72,8 @@ def process_sales_csv(csv_bytes: bytes) -> Tuple[str, SalesTrends, pd.DataFrame]
         raise ValueError(f"Failed to parse CSV file: {str(e)}")
 
     # Standardize column headers
-    df.columns = [c.strip().lower().replace(" ", "_") for c in df.columns]
+    df.columns = [normalize_header(c) for c in df.columns]
+    df = apply_column_aliases(df)
 
     # Validate required columns
     missing = [col for col in REQUIRED_COLUMNS if col not in df.columns]
@@ -49,9 +85,9 @@ def process_sales_csv(csv_bytes: bytes) -> Tuple[str, SalesTrends, pd.DataFrame]
 
     # Convert numeric fields
     try:
-        df["price"] = pd.to_numeric(df["price"], errors="coerce").fillna(0.0)
-        df["units_sold"] = pd.to_numeric(df["units_sold"], errors="coerce").fillna(0).astype(int)
-        df["revenue"] = pd.to_numeric(df["revenue"], errors="coerce").fillna(0.0)
+        df["price"] = to_number(df["price"]).fillna(0.0)
+        df["units_sold"] = to_number(df["units_sold"]).fillna(0).astype(int)
+        df["revenue"] = to_number(df["revenue"]).fillna(0.0)
     except Exception as e:
         raise ValueError(f"Failed to convert numerical columns: {str(e)}")
 
@@ -73,6 +109,12 @@ def process_sales_csv(csv_bytes: bytes) -> Tuple[str, SalesTrends, pd.DataFrame]
     # Determine trend trajectory
     trend_summary = "Stable sales performance"
     trend_bullets: List[str] = []
+
+    if len(df) < MIN_RELIABLE_PERIODS:
+        trend_bullets.append(
+            f"⚠ Limited data: only {len(df)} period(s) recorded. Treat trends as indicative only; "
+            f"{MIN_RELIABLE_PERIODS}+ periods are recommended for reliable patterns."
+        )
 
     if len(df) >= 2:
         half_idx = len(df) // 2
@@ -216,6 +258,7 @@ The user has uploaded a product photograph along with historical sales records.
    - CRITICAL REQUIREMENT: Present every connection strictly as a TESTABLE HYPOTHESIS or FACTOR WORTH INVESTIGATING.
    - Every `hypothesis` MUST begin with exactly "Factor worth investigating:" and use hedged language ("may", "could", "might").
    - NEVER use causal wording such as "caused", "led to", "leading to", "resulted in", "contributing to", "driving", "due to", "because of", "fails to", or "is hindering". Describe co-occurrence instead (e.g., "may be related to", "coincides with"). You have correlational data from one product; you cannot know causes.
+   - If the Key Trends above flag limited data, state that uncertainty in each hypothesis and keep claims especially tentative.
    - Respect timing in the Key Trends above: if units were already declining before a price change, do not attribute the decline to that price change.
    - Each hypothesis must cite both the supporting sales data (using ONLY available fields: date, price, units sold, revenue) and the specific visual factor.
    - Each hypothesis must include `how_to_test`: one concrete way the seller could confirm or rule it out.
@@ -241,6 +284,7 @@ Return your response strictly according to the provided schema.
                 contents=[image_part, prompt],
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
+                    temperature=MODEL_TEMPERATURE,
                     response_schema=MultimodalAnalysisPayload.model_json_schema(),
                 ),
             )
