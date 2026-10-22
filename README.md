@@ -66,3 +66,7 @@ The frontend is plain HTML/CSS/JS in `static/`, served by FastAPI (`app/main.py`
 ## Project docs
 
 Planning documents (scope, PRD, spec, build checklist) and an architecture map (`app-map.html`) are in `devpost/`.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
