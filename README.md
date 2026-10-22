@@ -4,6 +4,8 @@ A local web app that analyzes a product photo together with a sales CSV. Pandas 
 
 Built for the Devpost "Build With AI: Basics" learning hackathon.
 
+**Demo video:** https://youtu.be/V7qRnwZyklY
+
 ## Requirements
 
 - Python 3.10+
