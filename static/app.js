@@ -261,7 +261,7 @@ document.addEventListener('DOMContentLoaded', () => {
     imageInput.value = '';
     csvInput.value = '';
 
-    imagePreview.src = '/static/sample_data/sample_product.jpg';
+    imagePreview.src = '/static/sample_data/sample_product.jpg?v=2';
     imagePlaceholder.classList.add('hidden');
     imagePreviewContainer.classList.remove('hidden');
 
@@ -320,7 +320,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderResults(data) {
     resultsProductTitle.textContent = `Product: ${data.product_name}`;
     anchorProductText.textContent = data.product_name;
-    anchorImagePreview.src = isUsingSample ? '/static/sample_data/sample_product.jpg' : imagePreview.src;
+    anchorImagePreview.src = isUsingSample ? '/static/sample_data/sample_product.jpg?v=2' : imagePreview.src;
     anchorDataBadge.textContent = `${data.sales_trends.total_units_sold} Units Recorded`;
 
     // Card 1: Sales Trends
